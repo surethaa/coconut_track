@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block title %}Reports · Coconut Mill Ledger{% endblock %}
+{% block content %}
+<div class="pagehead"><h1 class="page-title">Reports</h1>
+  <a class="btn ghost" href="{{ url_for('statement') }}">Monthly statement →</a></div>
+{% include "_filter.html" %}
+{% set word = {'profit': 'PROFIT', 'loss': 'LOSS', 'even': 'BREAK-EVEN'}[s.state] %}
+<div class="result {{ s.state }}">
+  <div class="k">RESULT FOR THE SELECTED RANGE</div>
+  <div class="big">{{ word }}{% if s.state != 'even' %}: {{ (s.profit|abs)|money }}{% endif %}</div>
+  <div>
+    {% if s.state == 'profit' %}You earned {{ s.profit|money }} more than you spent.
+    {% elif s.state == 'loss' %}You spent {{ (s.profit|abs)|money }} more than you earned.
+    {% else %}Income and spending are equal.{% endif %}
+    {% if s.pct is not none and s.state != 'even' %}({{ '%.1f' % s.pct }}% of total cost){% endif %}
+  </div>
+</div>
+
+<h2>How it adds up</h2>
+<div class="metrics">
+  <div class="metric"><div class="l">Coconuts purchased</div><div class="v" style="font-size:15px;">{{ '{:,.0f}'.format(s.count) }} count<br>{{ '{:,.1f}'.format(s.kg) }} kg</div></div>
+  <div class="metric"><div class="l">Total amount invested</div><div class="v">{{ s.invested|money }}</div></div>
+  <div class="metric"><div class="l">Total copra amount</div><div class="v">{{ s.copra|money }}</div></div>
+  <div class="metric"><div class="l">Total shell amount</div><div class="v">{{ s.shell|money }}</div></div>
+  <div class="metric"><div class="l">Total coir amount ({{ '{:,.0f}'.format(s.coir_loads) }} loads)</div><div class="v">{{ s.coir|money }}</div></div>
+  <div class="metric"><div class="l">Total expenses (labor + transport)</div><div class="v">{{ s.expenses|money }}</div></div>
+</div>
+<div class="table-wrap" style="max-width:640px;">
+  <table style="min-width:0;"><tbody>
+    <tr><td class="l">Copra + shell + coir (income)</td><td>{{ s.income|money }}</td></tr>
+    <tr><td class="l">Less: amount invested in coconuts</td><td>− {{ s.invested|money }}</td></tr>
+    <tr><td class="l">Less: labor and transport expenses</td><td>− {{ s.expenses|money }}</td></tr>
+    <tr><td class="l"><strong>{{ 'Loss' if s.state == 'loss' else ('Break-even' if s.state == 'even' else 'Profit') }}</strong></td>
+        <td class="{{ 'neg' if s.state == 'loss' else 'pos' }}"><strong>{{ '− ' if s.state == 'loss' }}{{ (s.profit|abs)|money }}</strong></td></tr>
+  </tbody></table>
+</div>
+<p style="margin-top:16px;"><a class="btn ghost" href="{{ url_for('summary_csv', start=start, end=end) }}">Download summary CSV</a></p>
+{% endblock %}

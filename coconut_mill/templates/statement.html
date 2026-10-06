@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block title %}Monthly statement · Coconut Mill Ledger{% endblock %}
+{% block content %}
+<div class="pagehead"><h1 class="page-title">Monthly statement</h1></div>
+<div class="grid">
+  <div class="panel">
+    <h2>Choose a month</h2>
+    <p class="sub">Preview any month, download it, or send it now to the statement email.</p>
+    <form method="get">
+      <div class="field"><label for="month">Month</label><input type="month" id="month" name="month" value="{{ month }}"></div>
+      <button class="primary" type="submit">Preview</button>
+    </form>
+    <hr class="sep">
+    <p class="note"><strong>Statement email:</strong> {{ email or 'not set — an admin can add it in Settings' }}</p>
+    {% if user.role == 'admin' %}
+    <form method="post" action="{{ url_for('statement_send') }}">
+      <input type="hidden" name="csrf" value="{{ csrf }}"><input type="hidden" name="month" value="{{ month }}">
+      <button class="primary" type="submit" {{ 'disabled' if not email or not smtp_ok }}>Send this statement now</button>
+    </form>
+    {% if not smtp_ok %}<p class="note" style="margin-top:8px;">Email is not configured on the server yet (SMTP settings in <code>.env</code>).</p>{% endif %}
+    {% else %}<p class="note">Only an admin can send statements.</p>{% endif %}
+    <p class="note" style="margin-top:10px;">Automatic sending: on day 1 of each month the app emails the previous month's statement.
+      {% if last_month %}Last sent: {{ last_month }} ({{ last_at }}).{% else %}Nothing sent yet.{% endif %}</p>
+  </div>
+  <div class="panel">
+    <div class="bar"><h2 style="margin:0;">Preview — {{ month }}</h2>
+      <a class="btn ghost" href="{{ url_for('statement_download', month=month) }}">Download .txt</a></div>
+    <pre class="stmt">{{ text }}</pre>
+  </div>
+</div>
+{% endblock %}

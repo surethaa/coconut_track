@@ -1,0 +1,38 @@
+{% from "_icons.html" import icon -%}
+<!doctype html>
+<html lang="en">
+<head>
+  {% include "_head.html" %}
+  <title>{% block title %}Coconut Mill Ledger{% endblock %}</title>
+</head>
+<body>
+<div class="shell">
+  <aside class="side">
+    <a class="brand" href="{{ url_for('dashboard') }}"><img src="{{ url_for('static', filename='icons/icon-192.png') }}" alt=""><span>Coconut Mill Ledger</span></a>
+    <nav class="sidenav">
+      <a class="nav {{ 'active' if request.endpoint == 'dashboard' }}" href="{{ url_for('dashboard') }}">{{ icon('dashboard') }}<span>Dashboard</span></a>
+      {% set icons = {'coconut': 'coconut', 'copra': 'copra', 'shell': 'shell', 'expenses': 'expenses', 'coir': 'coir'} %}
+      {% for k, d in datasets.items() %}
+        <a class="nav {{ 'active' if request.endpoint in ('dataset',) and key is defined and key == k }}" href="{{ url_for('dataset', key=k) }}">{{ icon(icons[k]) }}<span>{{ d.title }}</span></a>
+      {% endfor %}
+      <a class="nav {{ 'active' if request.endpoint == 'summary' }}" href="{{ url_for('summary') }}">{{ icon('reports') }}<span>Reports</span></a>
+      <a class="nav {{ 'active' if request.endpoint == 'statement' }}" href="{{ url_for('statement') }}">{{ icon('statement') }}<span>Monthly statement</span></a>
+      <a class="nav {{ 'active' if request.endpoint == 'settings' }}" href="{{ url_for('settings') }}">{{ icon('settings') }}<span>{{ 'Settings' if user.role == 'admin' else 'Account' }}</span></a>
+    </nav>
+    <div class="sidefoot">
+      <div class="who"><small>{{ user.role }}</small>{{ user.email }}</div>
+      <button type="button" data-install hidden>{{ icon('install') }}<span>Install app</span></button>
+      <form method="post" action="{{ url_for('logout') }}">
+        <input type="hidden" name="csrf" value="{{ csrf }}">
+        <button type="submit">{{ icon('logout') }}<span>Log out</span></button>
+      </form>
+    </div>
+  </aside>
+  <main class="main">
+    {% for cat, msg in get_flashed_messages(with_categories=true) %}<div class="flash {{ cat }}">{{ msg }}</div>{% endfor %}
+    {% block content %}{% endblock %}
+  </main>
+</div>
+<script src="{{ url_for('static', filename='app.js') }}"></script>
+</body>
+</html>

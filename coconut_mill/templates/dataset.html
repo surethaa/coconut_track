@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+{% block title %}{{ cfg.title }} · Coconut Mill Ledger{% endblock %}
+{% block content %}
+<div class="pagehead"><h1 class="page-title">{{ cfg.title }}</h1></div>
+{% include "_filter.html" %}
+<div class="grid">
+  <div class="panel">
+    <h2>{{ 'Edit' if edit_id else 'Add' }} {{ cfg.title }} record</h2>
+    <p class="sub">{% if key == 'coconut' %}One record per farmer purchase.{% elif key == 'coir' %}Loads sold and the total amount received. This counts toward profit.{% else %}Totals calculate automatically.{% endif %}</p>
+    <form method="post" data-key="{{ key }}" action="{{ url_for('dataset', key=key, start=start, end=end) }}">
+      <input type="hidden" name="csrf" value="{{ csrf }}">
+      {% if edit_id %}<input type="hidden" name="id" value="{{ edit_id }}">{% endif %}
+      {% for f in cfg.fields %}
+        {% set val = values.get(f.name) %}
+        <div class="field">
+          <label for="{{ f.name }}" id="lbl-{{ f.name }}">{{ f.label }}</label>
+          {% if f.type == 'select' %}
+            <select id="{{ f.name }}" name="{{ f.name }}">
+              {% for o in f.options %}<option value="{{ o }}" {{ 'selected' if val == o }}>{{ o|capitalize }}</option>{% endfor %}
+            </select>
+          {% elif f.type == 'date' %}
+            <input type="date" id="{{ f.name }}" name="{{ f.name }}" value="{{ val or today }}" required>
+          {% elif f.type == 'text' %}
+            <input type="text" id="{{ f.name }}" name="{{ f.name }}" value="{{ val or '' }}" maxlength="200" {{ 'required' if f.required }}>
+          {% else %}
+            <input type="number" id="{{ f.name }}" name="{{ f.name }}" min="0" step="{{ f.step }}" placeholder="0" value="{{ (val if val else '') }}">
+          {% endif %}
+        </div>
+      {% endfor %}
+      {% if cfg.total_label %}
+        <div class="field"><label>{{ cfg.total_label }}</label><input type="text" id="live-total" disabled value="0.00"></div>
+      {% endif %}
+      <button class="primary" type="submit">{{ 'Save changes' if edit_id else 'Save record' }}</button>
+      {% if edit_id %}<p style="text-align:center;margin:10px 0 0;"><a class="link" href="{{ url_for('dataset', key=key, start=start, end=end) }}">Cancel edit</a></p>{% endif %}
+    </form>
+  </div>
+
+  <div>
+    <div class="bar">
+      <h2 style="margin:0;">{{ cfg.title }} data<span class="badge">{{ rows|length }}</span></h2>
+      <a class="btn ghost" href="{{ url_for('dataset_csv', key=key, start=start, end=end) }}">Download {{ cfg.title }} CSV</a>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr>{% for h, _, cls in cfg.cols %}<th class="{{ cls }}">{{ h }}</th>{% endfor %}<th></th></tr></thead>
+        <tbody>
+        {% for r in rows %}
+          <tr>
+            {% for cell in r.cells %}<td class="{{ cfg.cols[loop.index0][2] }}">{{ cell }}</td>{% endfor %}
+            <td><div class="acts">
+              <a href="{{ url_for('dataset', key=key, edit=r.id, start=start, end=end) }}">Edit</a>
+              {% if user.role == 'admin' %}
+              <form method="post" action="{{ url_for('delete_record', key=key, rid=r.id) }}" data-confirm="Delete this record? This cannot be undone.">
+                <input type="hidden" name="csrf" value="{{ csrf }}">
+                <input type="hidden" name="start" value="{{ start }}"><input type="hidden" name="end" value="{{ end }}">
+                <button type="submit">Delete</button>
+              </form>
+              {% endif %}
+            </div></td>
+          </tr>
+        {% else %}
+          <tr><td colspan="{{ cfg.cols|length + 1 }}" class="empty">No records in this range.</td></tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% if foot %}<div class="foot">{% for label, val in foot %}{{ label }}: <strong>{{ val }}</strong>{{ ' · ' if not loop.last }}{% endfor %}</div>{% endif %}
+  </div>
+</div>
+{% endblock %}

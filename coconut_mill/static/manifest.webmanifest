@@ -1,0 +1,16 @@
+{
+  "name": "Coconut Mill Ledger",
+  "short_name": "Mill Ledger",
+  "description": "Coconut, copra, shell, labor & transport and coir records with profit and loss.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#F4F1E8",
+  "theme_color": "#1F4D36",
+  "icons": [
+    {"src": "/static/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any"},
+    {"src": "/static/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any"},
+    {"src": "/static/icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable"}
+  ]
+}

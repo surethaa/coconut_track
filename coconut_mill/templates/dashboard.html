@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+{% from "_icons.html" import icon %}
+{% block title %}Dashboard · Coconut Mill Ledger{% endblock %}
+{% block content %}
+<div class="pagehead">
+  <h1 class="page-title">Dashboard</h1>
+  <form class="range" method="get" aria-label="Date range">
+    {{ icon('calendar') }}
+    <input type="date" name="start" value="{{ start }}" aria-label="From date">
+    <span>–</span>
+    <input type="date" name="end" value="{{ end }}" aria-label="To date">
+    <button class="primary auto" type="submit">Apply</button>
+  </form>
+</div>
+<div class="presets">
+  {% for label, s, e in presets %}<a href="{{ url_for('dashboard', start=s, end=e) }}">{{ label }}</a>{% endfor %}
+  <a href="{{ url_for('dashboard', start='', end='') }}">All time</a>
+</div>
+
+<div class="kpis">
+  {% for k in kpis %}
+  <div class="kpi">
+    <div class="kl">{{ k.label }}</div>
+    <div class="kv {{ k.cls }}">{{ k.value }}</div>
+    {% if k.sub %}<div class="ks">{{ k.sub }}</div>{% endif %}
+    {% if k.change is not none %}
+      <div class="chg {{ 'up' if k.change >= 0 else 'down' }}">{{ '▲' if k.change >= 0 else '▼' }} {{ '%.0f' % (k.change|abs) }}%</div>
+    {% else %}
+      <div class="chg none">{{ 'no earlier data to compare' if has_prev else '' }}</div>
+    {% endif %}
+  </div>
+  {% endfor %}
+</div>
+
+<div class="two">
+  <section class="card">
+    <h2>Monthly Profit / Loss</h2>
+    <div class="legend"><span><i style="background:var(--green)"></i>Income (copra + shell + coir)</span><span><i style="background:var(--blue)"></i>Costs (coconuts + labor + transport)</span></div>
+    {{ chart }}
+    <p class="hint">The number under each month is its net profit (+) or loss (−). Last 6 months up to the end date.</p>
+  </section>
+  <section class="card">
+    <h2>Recent Transactions</h2>
+    <table class="txn">
+      <thead><tr><th>Date</th><th>Type</th><th>Amount</th></tr></thead>
+      <tbody>
+      {% for t in recent %}
+        <tr>
+          <td>{{ t.date|dmy }}</td>
+          <td><span class="t">{{ t.type }}</span>{% if t.detail %}<span class="d">{{ t.detail }}</span>{% endif %}</td>
+          <td class="{{ 'amt-in' if t.direction == 'in' else 'amt-out' }}">{{ t.amount|money0 }}</td>
+        </tr>
+      {% else %}
+        <tr><td colspan="3" class="empty">No records yet. Start with the Coconut page.</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+    <p class="hint">Green amounts are money in (sales); dark amounts are money out (purchases and costs).</p>
+  </section>
+</div>
+
+<section class="card">
+  <h2>Inventory Overview</h2>
+  <div class="inv">
+    <div><b>Coconuts</b><span>{{ '{:,.0f}'.format(cur.count) }}</span><small>(Processed: {{ '{:,.0f}'.format(cur.processed) }}){% if cur.kg %} · {{ '{:,.1f}'.format(cur.kg) }} kg{% endif %}</small></div>
+    <div><b>Copra</b><span>{{ '{:,.1f}'.format(cur.copra_kg) }} kg</span><small>{{ cur.copra|money0 }}</small></div>
+    <div><b>Shell</b><span>{{ '{:,.2f}'.format(cur.shell_tons) }} tons</span><small>{{ cur.shell|money0 }}</small></div>
+    <div><b>Coir</b><span>{{ '{:,.0f}'.format(cur.coir_loads) }} loads</span><small>{{ cur.coir|money0 }}</small></div>
+  </div>
+  <p class="hint">Quantities recorded in the selected date range.</p>
+</section>
+{% endblock %}

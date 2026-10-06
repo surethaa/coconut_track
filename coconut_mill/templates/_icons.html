@@ -1,0 +1,17 @@
+{% macro icon(name) -%}
+{% set p = {
+ 'dashboard': '<rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/>',
+ 'coconut': '<circle cx="12" cy="13" r="8"/><circle cx="9.5" cy="11" r="1"/><circle cx="14" cy="10.5" r="1"/><circle cx="12" cy="15" r="1"/><path d="M8 5c1.5-2 6.5-2 8 0"/>',
+ 'copra': '<path d="M4 19C4 9 10 4 20 4c0 10-5 16-13 16"/><path d="M4 20 14 10"/>',
+ 'shell': '<path d="M3 15a9 9 0 0 1 18 0z"/><path d="M12 6v9M7.5 8l2 7M16.5 8l-2 7"/>',
+ 'expenses': '<rect x="2" y="6" width="12" height="10" rx="1"/><path d="M14 9.5h4l3.5 3.5V16h-7.5z"/><circle cx="6.5" cy="18" r="2"/><circle cx="17" cy="18" r="2"/>',
+ 'coir': '<path d="M4 7c4-3 12-3 16 0M4 12c4-3 12-3 16 0M4 17c4-3 12-3 16 0"/>',
+ 'reports': '<path d="M6 3h9l4 4v14H6z"/><path d="M15 3v4h4M9 13h6M9 17h6"/>',
+ 'statement': '<rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/>',
+ 'settings': '<circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1 7 17M17 7l2.1-2.1"/>',
+ 'logout': '<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/>',
+ 'calendar': '<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/>',
+ 'install': '<path d="M12 3v12M7 10l5 5 5-5M4 20h16"/>'
+} -%}
+<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">{{ p[name]|safe }}</svg>
+{%- endmacro %}

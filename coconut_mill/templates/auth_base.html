@@ -1,0 +1,17 @@
+<!doctype html>
+<html lang="en">
+<head>
+  {% include "_head.html" %}
+  <title>{% block title %}Coconut Mill Ledger{% endblock %}</title>
+</head>
+<body>
+<div class="auth">
+  <div class="auth-card">
+    <div class="logo"><img src="{{ url_for('static', filename='icons/icon-192.png') }}" alt=""><b>Coconut Mill Ledger</b></div>
+    {% for cat, msg in get_flashed_messages(with_categories=true) %}<div class="flash {{ cat }}">{{ msg }}</div>{% endfor %}
+    {% block content %}{% endblock %}
+  </div>
+</div>
+<script src="{{ url_for('static', filename='app.js') }}"></script>
+</body>
+</html>

@@ -1,0 +1,91 @@
+{% extends "base.html" %}
+{% block title %}{{ 'Settings' if user.role == 'admin' else 'Account' }} · Coconut Mill Ledger{% endblock %}
+{% block content %}
+<div class="pagehead"><h1 class="page-title">{{ 'Settings' if user.role == 'admin' else 'Account' }}</h1></div>
+
+<div class="grid" style="grid-template-columns:minmax(290px,420px) minmax(0,1fr);">
+  <div>
+    <div class="panel" style="margin-bottom:18px;">
+      <h2>Change my password</h2>
+      <p class="sub">Signed in as {{ user.email }}.</p>
+      <form method="post" action="{{ url_for('settings_password') }}">
+        <input type="hidden" name="csrf" value="{{ csrf }}">
+        <div class="field"><label for="current_password">Current password</label><input type="password" id="current_password" name="current_password" autocomplete="current-password" required></div>
+        <div class="field"><label for="new_password">New password (at least 8 characters)</label><input type="password" id="new_password" name="new_password" autocomplete="new-password" minlength="8" required></div>
+        <div class="field"><label for="confirm">Confirm new password</label><input type="password" id="confirm" name="confirm" autocomplete="new-password" minlength="8" required></div>
+        <button class="primary" type="submit">Change password</button>
+      </form>
+    </div>
+
+    {% if user.role == 'admin' %}
+    <div class="panel">
+      <h2>Monthly statement email</h2>
+      <p class="sub">The statement is sent to this address.</p>
+      <form method="post" action="{{ url_for('settings_email') }}">
+        <input type="hidden" name="csrf" value="{{ csrf }}">
+        <div class="field"><label for="registered_email">Email address</label>
+          <input type="email" id="registered_email" name="registered_email" value="{{ email }}" placeholder="accounts@yourmill.com"></div>
+        <button class="primary" type="submit">Save email</button>
+      </form>
+      <hr class="sep">
+      <p class="note">
+        Server email (SMTP): <strong>{{ 'configured' if smtp_ok else 'NOT configured' }}</strong><br>
+        Automatic monthly send: <strong>{{ 'on' if scheduler_on else 'off' }}</strong> (day 1, 06:00, {{ tz }})<br>
+        Last statement sent: <strong>{{ (last_month ~ ' at ' ~ last_at) if last_month else 'never' }}</strong>
+      </p>
+    </div>
+    {% endif %}
+  </div>
+
+  {% if user.role == 'admin' %}
+  <div class="panel">
+    <h2>Users</h2>
+    <p class="sub"><strong>Admin</strong>: everything, including deleting records, users and settings. <strong>Staff</strong>: view everything and add or edit records.</p>
+    <div class="table-wrap" style="box-shadow:none;margin-bottom:18px;">
+      <table style="min-width:0;">
+        <thead><tr><th class="l">Email</th><th class="l">Role</th><th class="l">Actions</th></tr></thead>
+        <tbody>
+        {% for u in users %}
+          <tr>
+            <td class="l" style="white-space:normal;word-break:break-all;">{{ u.email }}{% if u.id == user.id %} <span class="tag">you</span>{% endif %}</td>
+            <td class="l"><span class="tag {{ 'admin' if u.role == 'admin' }}">{{ u.role }}</span></td>
+            <td class="l">
+              <div class="userrow">
+                <form method="post" action="{{ url_for('user_role', uid=u.id) }}" class="userrow">
+                  <input type="hidden" name="csrf" value="{{ csrf }}">
+                  <select name="role" aria-label="Role for {{ u.email }}"><option value="staff" {{ 'selected' if u.role == 'staff' }}>staff</option><option value="admin" {{ 'selected' if u.role == 'admin' }}>admin</option></select>
+                  <button class="ghost" type="submit">Set role</button>
+                </form>
+                <form method="post" action="{{ url_for('user_reset_password', uid=u.id) }}" class="userrow">
+                  <input type="hidden" name="csrf" value="{{ csrf }}">
+                  <input type="password" name="password" placeholder="New password" minlength="8" autocomplete="new-password" aria-label="New password for {{ u.email }}" required>
+                  <button class="ghost" type="submit">Reset password</button>
+                </form>
+                {% if u.id != user.id %}
+                <form method="post" action="{{ url_for('user_delete', uid=u.id) }}" data-confirm="Remove {{ u.email }}? They will no longer be able to log in.">
+                  <input type="hidden" name="csrf" value="{{ csrf }}">
+                  <button class="danger" type="submit">Remove</button>
+                </form>
+                {% endif %}
+              </div>
+            </td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    <h2>Add a user</h2>
+    <form method="post" action="{{ url_for('user_add') }}">
+      <input type="hidden" name="csrf" value="{{ csrf }}">
+      <div class="field"><label for="nu_email">Email</label><input type="email" id="nu_email" name="email" required></div>
+      <div class="row2">
+        <div class="field"><label for="nu_pw">Temporary password</label><input type="password" id="nu_pw" name="password" minlength="8" autocomplete="new-password" required></div>
+        <div class="field"><label for="nu_role">Role</label><select id="nu_role" name="role"><option value="staff">staff</option><option value="admin">admin</option></select></div>
+      </div>
+      <button class="primary" type="submit">Create account</button>
+      <p class="note" style="margin-top:8px;">Tell them the temporary password privately; they can change it under Account.</p>
+    </form>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

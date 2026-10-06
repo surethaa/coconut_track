@@ -1,0 +1,13 @@
+{% extends "auth_base.html" %}
+{% block title %}Set up · Coconut Mill Ledger{% endblock %}
+{% block content %}
+<h2>Create the owner account</h2>
+<p class="sub">First-time setup. This account is the admin — it can add staff, change settings and delete records.</p>
+<form method="post">
+  <input type="hidden" name="csrf" value="{{ csrf }}">
+  <div class="field"><label for="email">Email</label><input type="email" id="email" name="email" autocomplete="username" autofocus required></div>
+  <div class="field"><label for="password">Password (at least 8 characters)</label><input type="password" id="password" name="password" autocomplete="new-password" minlength="8" required></div>
+  <div class="field"><label for="confirm">Confirm password</label><input type="password" id="confirm" name="confirm" autocomplete="new-password" minlength="8" required></div>
+  <button class="primary" type="submit">Create account</button>
+</form>
+{% endblock %}

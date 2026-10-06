@@ -1,0 +1,6 @@
+<form class="filter panel" method="get" style="padding:14px 16px;">
+  <div class="field"><label for="start">From date</label><input type="date" id="start" name="start" value="{{ start }}"></div>
+  <div class="field"><label for="end">To date</label><input type="date" id="end" name="end" value="{{ end }}"></div>
+  <button class="primary auto" type="submit">Apply filter</button>
+  <a class="btn ghost" href="{{ request.path }}">Clear</a>
+</form>
