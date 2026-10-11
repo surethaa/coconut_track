@@ -1,6 +1,6 @@
 """Coconut Mill Ledger — Flask + SQLite.
 
-Five data sets (coconut, copra, shell, labor & transport, coir), a profit/loss
+Six data sets (coconut, processed coconut, copra, shell, labor & transport, coir), a profit/loss
 summary, date-filtered CSV downloads, and an automatic monthly statement email.
 """
 import calendar
@@ -61,6 +61,10 @@ CREATE TABLE IF NOT EXISTS coconut (
     qty REAL NOT NULL DEFAULT 0, unit_price REAL NOT NULL DEFAULT 0,
     processed REAL NOT NULL DEFAULT 0,
     created_by TEXT, created_at TEXT DEFAULT (strftime('%Y-%m-%d %H:%M:%f','now')));
+CREATE TABLE IF NOT EXISTS processed (
+    id INTEGER PRIMARY KEY AUTOINCREMENT, date TEXT NOT NULL,
+    processed REAL NOT NULL DEFAULT 0,
+    created_by TEXT, created_at TEXT DEFAULT (strftime('%Y-%m-%d %H:%M:%f','now')));
 CREATE TABLE IF NOT EXISTS copra (
     id INTEGER PRIMARY KEY AUTOINCREMENT, date TEXT NOT NULL,
     kg REAL NOT NULL DEFAULT 0, price REAL NOT NULL DEFAULT 0,
@@ -110,10 +114,17 @@ def close_db(_exc):
 def init_db():
     with connect() as conn:
         conn.executescript(SCHEMA)
-        for table in ("coconut", "copra", "shell", "expenses", "coir"):  # upgrade older databases
+        for table in ("coconut", "processed", "copra", "shell", "expenses", "coir"):  # upgrade older databases
             cols = [r["name"] for r in conn.execute(f"PRAGMA table_info({table})")]
             if "created_by" not in cols:
                 conn.execute(f"ALTER TABLE {table} ADD COLUMN created_by TEXT")
+        # Processed coconuts used to be a field on each coconut purchase. Copy any numbers
+        # already entered there into the new Processed sheet, once. The old column is left
+        # untouched (nothing is deleted) but is no longer shown or counted.
+        if not conn.execute("SELECT 1 FROM settings WHERE key='migrated_processed_v1'").fetchone():
+            conn.execute("INSERT INTO processed (date, processed, created_by) "
+                         "SELECT date, processed, created_by FROM coconut WHERE processed > 0 ORDER BY date, id")
+            conn.execute("INSERT INTO settings(key, value) VALUES('migrated_processed_v1', '1')")
 
 
 def get_setting(conn, key, default=""):
@@ -155,7 +166,7 @@ app.jinja_env.filters["dmy"] = dmy
 
 
 # --------------------------------------------------------------------------
-# The five data sets
+# The six data sets
 # --------------------------------------------------------------------------
 def F(name, label, type_="number", **kw):
     return dict(name=name, label=label, type=type_, **kw)
@@ -168,18 +179,24 @@ DATASETS = {
                 F("date", "Date", "date", required=True),
                 F("unit", "Measured in", "select", options=["count", "kg"]),
                 F("qty", "Quantity", step="any"),
-                F("unit_price", "Unit price", step="0.01"),
-                F("processed", "Processed coconuts (count)", step="1")],
+                F("unit_price", "Unit price", step="0.01")],
         amount=lambda r: r["qty"] * r["unit_price"],
         cols=[("Farmer", lambda r: r["farmer"], "l"), ("Date", lambda r: r["date"], "l"),
               ("Coconuts", lambda r: num(r["qty"], 1 if r["unit"] == "kg" else 0), ""),
               ("Unit", lambda r: r["unit"], ""),
               ("Unit price", lambda r: money(r["unit_price"]), ""),
-              ("Total amount", lambda r: money(r["amount"]), ""),
-              ("Processed", lambda r: num(r["processed"]), "")],
+              ("Total amount", lambda r: money(r["amount"]), "")],
         csv=[("Farmer name", "farmer"), ("Date", "date"), ("Coconut quantity", "qty"),
              ("Unit", "unit"), ("Unit price", "unit_price"), ("Total amount", "amount"),
-             ("Processed coconuts", "processed"), ("Entered by", "created_by")]),
+             ("Entered by", "created_by")]),
+    "processed": dict(
+        title="Processed coconut", table="processed", total_label=None,
+        fields=[F("date", "Date", "date", required=True),
+                F("processed", "Processed coconuts (count)", step="1")],
+        amount=lambda r: 0.0,
+        cols=[("Date", lambda r: r["date"], "l"),
+              ("Processed coconuts", lambda r: num(r["processed"]), "")],
+        csv=[("Date", "date"), ("Processed coconuts", "processed"), ("Entered by", "created_by")]),
     "copra": dict(
         title="Copra", table="copra", total_label="Total copra price",
         fields=[F("date", "Date", "date", required=True),
@@ -291,12 +308,13 @@ def summarize(conn, start="", end=""):
     shell = fetch_rows(conn, "shell", start, end)
     exp = fetch_rows(conn, "expenses", start, end)
     coir = fetch_rows(conn, "coir", start, end)
+    proc = fetch_rows(conn, "processed", start, end)
     s = {
         "coco_rows": coco,
         "count": sum(r["qty"] for r in coco if r["unit"] != "kg"),
         "kg": sum(r["qty"] for r in coco if r["unit"] == "kg"),
         "invested": sum(r["amount"] for r in coco),
-        "processed": sum(r["processed"] for r in coco),
+        "processed": sum(r["processed"] for r in proc),
         "copra_kg": sum(r["kg"] for r in copra), "copra": sum(r["amount"] for r in copra),
         "shell_tons": sum(r["tons"] for r in shell), "shell": sum(r["amount"] for r in shell),
         "labor": sum(r["labor"] for r in exp), "transport": sum(r["transport"] for r in exp),
@@ -308,7 +326,7 @@ def summarize(conn, start="", end=""):
     s["state"] = "even" if abs(s["profit"]) < 0.005 else ("profit" if s["profit"] > 0 else "loss")
     cost = s["invested"] + s["expenses"]
     s["pct"] = (abs(s["profit"]) / cost * 100) if cost > 0 else None
-    s["empty"] = not (coco or copra or shell or exp or coir)
+    s["empty"] = not (coco or proc or copra or shell or exp or coir)
     return s
 
 
@@ -317,8 +335,9 @@ def foot_pairs(key, rows):
         count = sum(r["qty"] for r in rows if r["unit"] != "kg")
         kg = sum(r["qty"] for r in rows if r["unit"] == "kg")
         return [("Purchased", f"{num(count)} count · {num(kg, 1)} kg"),
-                ("Amount invested", money(sum(r["amount"] for r in rows))),
-                ("Processed", num(sum(r["processed"] for r in rows)))]
+                ("Amount invested", money(sum(r["amount"] for r in rows)))]
+    if key == "processed":
+        return [("Total processed", f"{num(sum(r['processed'] for r in rows))} coconuts")]
     if key == "copra":
         return [("Copra", f"{num(sum(r['kg'] for r in rows), 1)} kg"),
                 ("Total copra amount", money(sum(r["amount"] for r in rows)))]
